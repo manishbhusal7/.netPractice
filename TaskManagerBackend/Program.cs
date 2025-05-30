@@ -1,5 +1,3 @@
-
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using TaskManagerAPI.Data;
@@ -20,9 +18,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add database context
-builder.Services.AddDbContext<TaskDbContext>(opt =>
-    opt.UseInMemoryDatabase("TaskDB"));
+// Configure SQLite database (replaces in-memory DB)
+builder.Services.AddDbContext<TaskDbContext>(options => 
+    options.UseSqlite(builder.Configuration.GetConnectionString("LocalDb")));
 
 // Configure CORS to allow React's port (3000)
 builder.Services.AddCors(options =>
@@ -45,8 +43,17 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Task Manager API v1");
     });
+    
+    // Apply database migrations automatically in development
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<TaskDbContext>();
+        dbContext.Database.EnsureCreated();
+    }
 }
 
 app.UseCors("ReactPolicy"); // Use the CORS policy here
 app.MapControllers();
 app.Run();
+
+
